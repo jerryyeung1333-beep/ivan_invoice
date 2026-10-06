@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Invoice Generator - iPhone 18 Pro Style</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF & jsPDF-AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap');
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background-color: #0d0d12;
+      color: #f3f4f6;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    /* iOS Custom Scrollbar */
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+  </style>
+</head>
+<body class="flex justify-center items-center min-h-screen sm:p-4">
+
+  <!-- iPhone 18 Pro 外框模擬器容器 -->
+  <div class="w-full max-w-[400px] h-[100vh] sm:h-[852px] bg-black sm:rounded-[50px] shadow-2xl border-0 sm:border-[8px] border-[#2c2c2e] flex flex-col justify-between overflow-hidden relative">
+    
+    <!-- iPhone 靈動島 Dynamic Island -->
+    <div class="hidden sm:flex absolute top-2 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 items-center justify-between px-2">
+      <div class="w-2.5 h-2.5 rounded-full bg-[#1c1c1e]"></div>
+      <div class="w-3 h-3 rounded-full bg-[#0a101d] border border-[#1c1c1e] flex items-center justify-center">
+        <div class="w-1.5 h-1.5 rounded-full bg-[#005f7d]/80"></div>
+      </div>
+    </div>
+
+    <!-- 頂部導航欄 App Header -->
+    <header class="pt-8 sm:pt-10 pb-3 px-5 bg-gradient-to-b from-[#141418] to-[#0d0d12] border-b border-white/10 flex justify-between items-center z-10 shrink-0">
+      <div>
+        <h1 class="text-xs font-semibold tracking-wider text-[#00a8cc] uppercase">JOINT RICH CORP</h1>
+        <p class="text-lg font-bold text-white tracking-tight">發票生成器</p>
+      </div>
+      <span class="text-xs px-2.5 py-1 rounded-full bg-[#00a8cc]/20 text-[#00c8f0] font-medium border border-[#00a8cc]/30">
+        iOS App
+      </span>
+    </header>
+
+    <!-- 主內容滑動區塊 -->
+    <main class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      
+      <!-- 客戶基本資料卡片 -->
+      <section class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex justify-between items-center border-b border-white/10 pb-2">
+          <h2 class="text-xs font-bold text-[#00c8f0] uppercase tracking-wider flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            客戶與發票資訊
+          </h2>
+          <span class="text-[10px] text-gray-400">Invoice Info</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">發票日期 (Today)</label>
+            <input type="text" id="invoiceDate" value="" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">公司電話 (Mobile)</label>
+            <input type="text" id="mobile" value="91491793" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">收件人 (TO)</label>
+            <input type="text" id="clientTo" value="LEUNG WING MAN, Monique" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">客戶公司 (Company)</label>
+            <input type="text" id="clientCompany" value="Bohai Chemical (HK) Limited" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">地址 (Address)</label>
+            <textarea id="clientAddress" rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc] resize-none">Unit 4, 26/F, Greenfield Tower, Concordia Plaza, No.1 Science Museum Road, Kowloon, Hong Kong</textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-0.5">電話 (Tel)</label>
+              <input type="text" id="clientTel" value="26206292" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block mb-0.5">收款抬頭 (Payable To)</label>
+              <input type="text" id="payableTo" value="Ivan Ma" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-0.5">電郵 (Email)</label>
+            <input type="email" id="clientEmail" value="moniqueleung@bohaichem.com.hk" class="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+        </div>
+      </section>
+
+      <!-- 行程明細卡片清單區塊 -->
+      <section class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex justify-between items-center border-b border-white/10 pb-2">
+          <div>
+            <h2 class="text-xs font-bold text-[#00c8f0] uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+              行程費用明細
+            </h2>
+          </div>
+          <button type="button" onclick="openModal()" class="bg-gradient-to-r from-[#008ca8] to-[#00b4d8] active:scale-95 text-white text-xs px-3 py-1.5 rounded-full font-medium shadow-lg shadow-[#008ca8]/30 flex items-center gap-1 transition">
+            <span>+ 新增行程</span>
+          </button>
+        </div>
+
+        <div id="tripList" class="space-y-2">
+          <!-- 動態卡片載入於此 -->
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部固定發票總計與生成 PDF 動作欄 -->
+    <footer class="p-4 bg-gradient-to-t from-[#141418] via-[#141418]/95 to-transparent border-t border-white/10 shrink-0 space-y-3">
+      <div class="flex justify-between items-baseline px-2">
+        <span class="text-xs text-gray-400 font-medium">發票總金額 (TOTAL)</span>
+        <span id="grandTotal" class="text-2xl font-extrabold text-[#00e5ff] tracking-tight">HK$0</span>
+      </div>
+
+      <button type="button" onclick="generatePDF()" class="w-full bg-gradient-to-r from-[#00b4d8] to-[#0077b6] hover:from-[#00c8f0] hover:to-[#008ca8] active:scale-[0.98] text-white font-bold py-3.5 px-4 rounded-2xl shadow-xl shadow-[#0077b6]/30 flex justify-center items-center gap-2 transition duration-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span>生成 PDF 並直接蓋章出單</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- 行程輸入/編輯 彈出式 Bottom Sheet 視窗 -->
+  <div id="tripModal" class="fixed inset-0 modal-backdrop z-50 flex justify-center items-end opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="modalContent" class="w-full max-w-[400px] bg-[#1c1c1e] border-t border-white/20 rounded-t-[30px] p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+      
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-1 bg-white/20 rounded-full"></div>
+        <div class="w-full flex justify-between items-center pt-1">
+          <h3 id="modalTitle" class="text-sm font-bold text-white flex items-center gap-1.5">
+            <span id="modalIcon">✏️</span> <span id="modalHeadingText">新增行程明細</span>
+          </h3>
+          <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-white bg-white/10 rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
+        </div>
+      </div>
+
+      <form id="modalForm" onsubmit="event.preventDefault(); saveTrip();" class="space-y-3 text-xs">
+        <input type="hidden" id="editIndex" value="-1">
+
+        <div>
+          <label class="text-[10px] text-gray-400 block mb-1">行程日期 (Date)</label>
+          <input type="text" id="modalDate" placeholder="例如: 18/5/2026" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
+        </div>
+
+        <div>
+          <label class="text-[10px] text-gray-400 block mb-1">行程描述 (Description)</label>
+          <input type="text" id="modalDesc" placeholder="例如: Travel fee: From Airport to Hotel" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-1">費用 HK$ (Hourly Fee)</label>
+            <input type="number" id="modalFee" min="0" placeholder="0" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 block mb-1">雜費 HK$ (Misc Fee)</label>
+            <input type="number" id="modalMisc" min="0" placeholder="0" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" id="deleteBtn" onclick="deleteCurrentTrip()" class="hidden w-1/3 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-3 rounded-xl border border-red-500/30 transition">
+            刪除
+          </button>
+          <button type="submit" class="flex-1 bg-gradient-to-r from-[#00a8cc] to-[#00b4d8] text-white font-semibold py-3 rounded-xl shadow-lg transition active:scale-95">
+            確認儲存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 自動取得手機/電腦當前日期 (格式: D/M/YYYY)
+    function getFormattedCurrentDate() {
+      const today = new Date();
+      const day = today.getDate();
+      const month = today.getMonth() + 1;
+      const year = today.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    // 清空行程明細資料陣列
+    let trips = [];
+
+    window.onload = function() {
+      // 開啟 App 時自動將發票主日期設為今天
+      document.getElementById('invoiceDate').value = getFormattedCurrentDate();
+      renderTripList();
+    };
+
+    function renderTripList() {
+      const listContainer = document.getElementById('tripList');
+      listContainer.innerHTML = '';
+      let grandTotal = 0;
+
+      if (trips.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-gray-400 text-xs border border-dashed border-white/10 rounded-xl bg-white/5">
+            <p>目前沒有行程明細</p>
+            <p class="text-[10px] text-gray-500 mt-1">請點擊上方「+ 新增行程」開始添加條目</p>
+          </div>
+        `;
+      } else {
+        trips.forEach((trip, index) => {
+          const total = (parseFloat(trip.fee) || 0) + (parseFloat(trip.misc) || 0);
+          grandTotal += total;
+
+          const card = document.createElement('div');
+          card.className = 'bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3 flex justify-between items-center transition cursor-pointer active:scale-[0.98]';
+          card.onclick = () => openModal(index);
+
+          card.innerHTML = `
+            <div class="space-y-0.5 pr-2 overflow-hidden">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] bg-[#00a8cc]/20 text-[#00c8f0] px-2 py-0.5 rounded font-mono font-semibold">📅 ${trip.date}</span>
+              </div>
+              <p class="text-xs text-gray-200 font-medium truncate">${trip.desc}</p>
+              <p class="text-[10px] text-gray-400">費用: HK$${trip.fee} | 雜費: HK$${trip.misc}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="text-xs font-bold text-[#00e5ff] block">HK$${total.toLocaleString()}</span>
+              <span class="text-[10px] text-gray-400">編輯 ❯</span>
+            </div>
+          `;
+          listContainer.appendChild(card);
+        });
+      }
+
+      document.getElementById('grandTotal').innerText = `HK$${grandTotal.toLocaleString()}`;
+    }
+
+    function openModal(index = -1) {
+      const modal = document.getElementById('tripModal');
+      const modalContent = document.getElementById('modalContent');
+      const deleteBtn = document.getElementById('deleteBtn');
+
+      document.getElementById('editIndex').value = index;
+
+      if (index >= 0) {
+        const trip = trips[index];
+        document.getElementById('modalHeadingText').innerText = '編輯行程條目';
+        document.getElementById('modalDate').value = trip.date;
+        document.getElementById('modalDesc').value = trip.desc;
+        document.getElementById('modalFee').value = trip.fee;
+        document.getElementById('modalMisc').value = trip.misc;
+        deleteBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('modalHeadingText').innerText = '新增行程明細';
+        document.getElementById('modalForm').reset();
+        document.getElementById('modalDate').value = getFormattedCurrentDate();
+        deleteBtn.classList.add('hidden');
+      }
+
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modalContent.classList.remove('translate-y-full');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('tripModal');
+      const modalContent = document.getElementById('modalContent');
+
+      modalContent.classList.add('translate-y-full');
+      modal.classList.add('opacity-0');
+      setTimeout(() => {
+        modal.classList.add('pointer-events-none');
+      }, 300);
+    }
+
+    function saveTrip() {
+      const index = parseInt(document.getElementById('editIndex').value);
+      const newTrip = {
+        date: document.getElementById('modalDate').value,
+        desc: document.getElementById('modalDesc').value,
+        fee: parseFloat(document.getElementById('modalFee').value) || 0,
+        misc: parseFloat(document.getElementById('modalMisc').value) || 0
+      };
+
+      if (index >= 0) {
+        trips[index] = newTrip;
+      } else {
+        trips.push(newTrip);
+      }
+
+      renderTripList();
+      closeModal();
+    }
+
+    function deleteCurrentTrip() {
+      const index = parseInt(document.getElementById('editIndex').value);
+      if (index >= 0) {
+        trips.splice(index, 1);
+        renderTripList();
+        closeModal();
+      }
+    }
+
+    // 繪製真實圖章 Canvas
+    function createStampDataURL() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 300;
+      const ctx = canvas.getContext('2d');
+
+      ctx.translate(150, 150);
+      ctx.rotate(-8 * Math.PI / 180);
+
+      const stampColor = '#2b1b6d';
+
+      ctx.strokeStyle = stampColor;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, 110, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.font = 'bold 20px "Times New Roman", serif';
+      ctx.fillStyle = stampColor;
+      ctx.textAlign = 'center';
+      
+      const topText = "JOINT RICH CORPORATION LIMITED";
+      for (let i = 0; i < topText.length; i++) {
+        const angle = -Math.PI / 1.35 + (i * (Math.PI * 1.52 / topText.length));
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.fillText(topText[i], 0, -88);
+        ctx.restore();
+      }
+
+      ctx.font = '22px Arial';
+      ctx.fillText("★", 0, 98);
+
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, 80, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.font = 'bold 24px "Kaiti SC", "STKaiti", "Microsoft JhengHei", sans-serif';
+      ctx.fillText("融 富", 0, -12);
+      ctx.fillText("有限公司", 0, 24);
+
+      ctx.strokeStyle = '#271960';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-135, 18);
+      ctx.bezierCurveTo(-80, 10, -20, 35, 30, -5);
+      ctx.bezierCurveTo(80, -40, 145, 0, 120, 10);
+      ctx.bezierCurveTo(90, 20, -40, -10, -135, 18);
+      ctx.stroke();
+
+      return canvas.toDataURL('image/png');
+    }
+
+    // 生成 PDF 檔
+    function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+      const primaryColor = [0, 95, 125];
+
+      doc.setFontSize(20);
+      doc.setTextColor(...primaryColor);
+      doc.setFont('helvetica', 'bold');
+      doc.text('JOINT RICH CORPORATION LIMITED', 297.5, 50, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`MOBILE:   ${document.getElementById('mobile').value}`, 40, 90);
+      doc.text(`INVOICE DATE   ${document.getElementById('invoiceDate').value}`, 555, 90, { align: 'right' });
+
+      doc.setFontSize(22);
+      doc.setTextColor(...primaryColor);
+      doc.text('INVOICE', 297.5, 125, { align: 'center' });
+
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(1.5);
+      doc.line(40, 135, 555, 135);
+
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      
+      let currentY = 165;
+      const leftX = 130;
+      const rightX = 260;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('TO :', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(document.getElementById('clientTo').value, rightX, currentY);
+      currentY += 18;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('COMPANY :', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(document.getElementById('clientCompany').value, rightX, currentY);
+      currentY += 18;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('ADDRESS :', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      
+      const addressText = document.getElementById('clientAddress').value;
+      const splitAddress = doc.splitTextToSize(addressText, 280);
+      doc.text(splitAddress, rightX, currentY);
+      
+      const addressLines = splitAddress.length;
+      currentY += Math.max(18, addressLines * 14 + 4);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONTACTS :', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Tel: ${document.getElementById('clientTel').value}`, rightX, currentY);
+      currentY += 16;
+      doc.text(`Email: ${document.getElementById('clientEmail').value}`, rightX, currentY);
+
+      const tableRows = trips.map(t => [
+        t.date,
+        t.desc,
+        `HK$${t.fee.toLocaleString()}`,
+        `HK$${t.misc.toLocaleString()}`,
+        `HK$${(t.fee + t.misc).toLocaleString()}`
+      ]);
+
+      const tableStartY = Math.max(270, currentY + 25);
+
+      doc.autoTable({
+        startY: tableStartY,
+        head: [['DATE', 'DESCRIPTION', 'HOURLY FEE', 'MISC FEE', 'TOTAL']],
+        body: tableRows,
+        margin: { left: 40, right: 40 },
+        theme: 'plain',
+        headStyles: {
+          fillColor: [0, 105, 135],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'left'
+        },
+        columnStyles: {
+          0: { cellWidth: 75 },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 80, halign: 'right' },
+          3: { cellWidth: 70, halign: 'right' },
+          4: { cellWidth: 80, halign: 'right', fontStyle: 'bold' }
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 6,
+          lineColor: [200, 220, 230],
+          lineWidth: 0.5
+        }
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 40;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Cheque or Cash payable to: ${document.getElementById('payableTo').value}`, 40, finalY + 80);
+
+      const grandTotalStr = document.getElementById('grandTotal').innerText;
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOTAL', 420, finalY + 80);
+      doc.text(grandTotalStr, 555, finalY + 80, { align: 'right' });
+      
+      doc.setLineWidth(0.8);
+      doc.line(440, finalY + 84, 555, finalY + 84);
+      doc.line(440, finalY + 86, 555, finalY + 86);
+
+      const stampImgData = createStampDataURL();
+      doc.addImage(stampImgData, 'PNG', 360, finalY - 25, 120, 120);
+
+      doc.save(`Invoice_${document.getElementById('invoiceDate').value.replace(/\//g, '-')}.pdf`);
+    }
+  </script>
+</body>
+</html>

@@ -28,7 +28,7 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
-    /* iOS Custom Scrollbar */
+    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 0px; background: transparent; }
   </style>
 </head>
@@ -146,7 +146,7 @@
 
   <!-- 行程輸入/編輯 彈出式 Bottom Sheet 視窗 -->
   <div id="tripModal" class="fixed inset-0 modal-backdrop z-50 flex justify-center items-end opacity-0 pointer-events-none transition-opacity duration-300">
-    <div id="modalContent" class="w-full max-w-[400px] bg-[#1c1c1e] border-t border-white/20 rounded-t-[30px] p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+    <div id="modalContent" class="w-full max-w-[400px] max-h-[90vh] overflow-y-auto bg-[#1c1c1e] border-t border-white/20 rounded-t-[30px] p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       
       <div class="flex flex-col items-center gap-2">
         <div class="w-10 h-1 bg-white/20 rounded-full"></div>
@@ -161,16 +161,48 @@
       <form id="modalForm" onsubmit="event.preventDefault(); saveTrip();" class="space-y-3 text-xs">
         <input type="hidden" id="editIndex" value="-1">
 
+        <!-- 日期 -->
         <div>
           <label class="text-[10px] text-gray-400 block mb-1">行程日期 (Date)</label>
           <input type="text" id="modalDate" placeholder="例如: 18/5/2026" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
         </div>
 
+        <!-- 行程地點選擇 (Checkbox 選項區塊) -->
+        <div class="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+          <span class="text-[11px] font-bold text-[#00c8f0] block mb-1">Travel Fee 地點快速選擇：</span>
+          
+          <!-- 1. From 子項目 -->
+          <div>
+            <label class="text-[10px] text-gray-300 font-semibold block mb-1">1. From (起點)：</label>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="fromLoc" value="HK Airport" onchange="handleLocChange('from', this)" class="accent-[#00a8cc]"> HK Airport</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="fromLoc" value="HK Hotel" onchange="handleLocChange('from', this)" class="accent-[#00a8cc]"> HK Hotel</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="fromLoc" value="Shenzhen Airport" onchange="handleLocChange('from', this)" class="accent-[#00a8cc]"> Shenzhen Airport</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="fromLoc" value="Shenzhen Hotel" onchange="handleLocChange('from', this)" class="accent-[#00a8cc]"> Shenzhen Hotel</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="fromLoc" value="Hourly" onchange="handleLocChange('from', this)" class="accent-[#00a8cc]"> Hourly</label>
+            </div>
+          </div>
+
+          <!-- 2. To 子項目 -->
+          <div class="pt-1 border-t border-white/5">
+            <label class="text-[10px] text-gray-300 font-semibold block mb-1">2. To (終點)：</label>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="toLoc" value="HK Airport" onchange="handleLocChange('to', this)" class="accent-[#00a8cc]"> HK Airport</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="toLoc" value="HK Hotel" onchange="handleLocChange('to', this)" class="accent-[#00a8cc]"> HK Hotel</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="toLoc" value="Shenzhen Airport" onchange="handleLocChange('to', this)" class="accent-[#00a8cc]"> Shenzhen Airport</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="toLoc" value="Shenzhen Hotel" onchange="handleLocChange('to', this)" class="accent-[#00a8cc]"> Shenzhen Hotel</label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-gray-300"><input type="checkbox" name="toLoc" value="Hourly" onchange="handleLocChange('to', this)" class="accent-[#00a8cc]"> Hourly</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 行程描述輸入框 -->
         <div>
-          <label class="text-[10px] text-gray-400 block mb-1">行程描述 (Description)</label>
+          <label class="text-[10px] text-gray-400 block mb-1">3. Travel Fee 行程描述 (Description)</label>
           <input type="text" id="modalDesc" placeholder="例如: Travel fee: From Airport to Hotel" required class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-[#00a8cc]">
         </div>
 
+        <!-- 金額輸入區 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-[10px] text-gray-400 block mb-1">費用 HK$ (Hourly Fee)</label>
@@ -195,7 +227,6 @@
   </div>
 
   <script>
-    // 自動取得手機/電腦當前日期 (格式: D/M/YYYY)
     function getFormattedCurrentDate() {
       const today = new Date();
       const day = today.getDate();
@@ -204,11 +235,9 @@
       return `${day}/${month}/${year}`;
     }
 
-    // 清空行程明細資料陣列
     let trips = [];
 
     window.onload = function() {
-      // 開啟 App 時自動將發票主日期設為今天
       document.getElementById('invoiceDate').value = getFormattedCurrentDate();
       renderTripList();
     };
@@ -254,12 +283,54 @@
       document.getElementById('grandTotal').innerText = `HK$${grandTotal.toLocaleString()}`;
     }
 
+    // 單選 Checkbox 處理與自動合成描述文字
+    function handleLocChange(type, currentCheckbox) {
+      const groupName = type === 'from' ? 'fromLoc' : 'toLoc';
+      const checkboxes = document.getElementsByName(groupName);
+
+      if (currentCheckbox.checked) {
+        checkboxes.forEach(cb => {
+          if (cb !== currentCheckbox) cb.checked = false;
+        });
+      }
+
+      updateAutoDescription();
+    }
+
+    function updateAutoDescription() {
+      const fromCB = Array.from(document.getElementsByName('fromLoc')).find(cb => cb.checked);
+      const toCB = Array.from(document.getElementsByName('toLoc')).find(cb => cb.checked);
+
+      const fromVal = fromCB ? fromCB.value : '';
+      const toVal = toCB ? toCB.value : '';
+
+      let descStr = '';
+
+      if (fromVal === 'Hourly' || toVal === 'Hourly') {
+        descStr = 'Travel fee: Hourly';
+      } else if (fromVal && toVal) {
+        descStr = `Travel fee: From ${fromVal} to ${toVal}`;
+      } else if (fromVal) {
+        descStr = `Travel fee: From ${fromVal}`;
+      } else if (toVal) {
+        descStr = `Travel fee: To ${toVal}`;
+      }
+
+      if (descStr) {
+        document.getElementById('modalDesc').value = descStr;
+      }
+    }
+
     function openModal(index = -1) {
       const modal = document.getElementById('tripModal');
       const modalContent = document.getElementById('modalContent');
       const deleteBtn = document.getElementById('deleteBtn');
 
       document.getElementById('editIndex').value = index;
+
+      // 清空 Checkbox 狀態
+      document.getElementsByName('fromLoc').forEach(cb => cb.checked = false);
+      document.getElementsByName('toLoc').forEach(cb => cb.checked = false);
 
       if (index >= 0) {
         const trip = trips[index];
